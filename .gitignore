@@ -1,0 +1,93 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# ═══════════════════════════════════════════════════════════════
+# SENSITIVE DATA - NEVER COMMIT THESE!
+# ═══════════════════════════════════════════════════════════════
+
+# Credentials and encryption keys
+credentials.json
+master.key
+*.key
+*.pem
+
+# SSH keys (if stored in project)
+keys/
+*.pub
+id_rsa*
+id_ed25519*
+id_ecdsa*
+
+# Backup files that may contain credentials
+*.bak
+*.backup
+*-backup.json
+ssh-creds-*.json
+ssh-backup.json
+backup.json
+
+# Exported credentials
+*-export.json
+export-*.json
+ssh-creds-export.json
+
+# Environment files with secrets
+.env
+.env.local
+.env.production
+*.env
+
+# Configuration files that might contain secrets
+config.local.json
+secrets.json
+private.json
+
+# Temporary credential files
+temp-creds.json
+tmp-*.json
+
+# Testing credentials
+test-credentials.json
+test-creds.json
+
+# UV
+uv.lock
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
