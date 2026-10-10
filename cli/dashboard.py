@@ -457,7 +457,9 @@ class SSHDashboard(App):
         self.push_screen(TransferForm(name), start)
 
     def get_system_commands(self, screen):
-        yield from super().get_system_commands(screen)
+        for command in super().get_system_commands(screen):
+            if command.title != "Screenshot":
+                yield command
         yield SystemCommand("Reset theme", "Restore and save the default theme", self.action_reset_theme)
 
     def action_reset_theme(self):
