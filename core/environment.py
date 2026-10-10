@@ -1,10 +1,11 @@
 """Development-only feature configuration for local and Docker runs."""
 import ipaddress
 import os
+import sys
 from pathlib import Path
 from dotenv import dotenv_values
 
-DOTENV_PATH = Path(__file__).resolve().parent.parent / ".env"
+DOTENV_PATH = (Path(sys.executable).resolve().parent if getattr(sys, "frozen", False) else Path(__file__).resolve().parent.parent) / ".env"
 
 
 def is_development():

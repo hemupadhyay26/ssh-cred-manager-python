@@ -8,11 +8,18 @@ import sys
 import tempfile
 
 from rich.console import Console
+from core.runtime import external_environment
 
 
 def status_text(value):
     """Keep credential text literal in tmux formats and strip terminal controls."""
     return ''.join(ch for ch in str(value) if ch.isprintable()).replace('#', '##')
+
+
+def session_command(payload, result_file):
+    if getattr(sys, "frozen", False):
+        return [sys.executable, "--_ssc-session-worker", str(payload), str(result_file)]
+    return [sys.executable, str(Path(__file__).with_name("session_runner.py")), str(payload), str(result_file)]
 
 
 def connect_with_status(credential, key_path=None):
@@ -33,12 +40,13 @@ def connect_with_status(credential, key_path=None):
         payload.write_text(json.dumps({'credential': data, 'key_path': str(key_path) if key_path else None}))
         payload.chmod(0o600)
         command = ['tmux', '-S', str(root / 'socket'), '-f', '/dev/null']
-        environment = os.environ.copy()
+        environment = external_environment()
         environment.pop('TMUX', None)
         size = shutil.get_terminal_size()
-        runner = Path(__file__).with_name('session_runner.py')
+        if getattr(sys, "frozen", False):
+            environment["PYINSTALLER_RESET_ENVIRONMENT"] = "1"
         try:
-            subprocess.run(command + ['new-session', '-d', '-s', 'ssh', '-x', str(size.columns), '-y', str(size.lines), sys.executable, str(runner), str(payload), str(result_file)], env=environment, check=True, capture_output=True)
+            subprocess.run(command + ['new-session', '-d', '-s', 'ssh', '-x', str(size.columns), '-y', str(size.lines)] + session_command(payload, result_file), env=environment, check=True, capture_output=True)
             options = {
                 'status': '2', 'status-position': 'top',
                 'status-style': 'bg=colour235,fg=colour255',

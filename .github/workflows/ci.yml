@@ -63,17 +63,21 @@ jobs:
       - name: Clean CI volumes
         if: always()
         run: docker compose --project-name ssc-ci down --volumes
+  binary-tests:
+    uses: ./.github/workflows/binary-build.yml
   stability-gate:
     name: PR stability gate
     if: always()
-    needs: [functional-tests, docker-tests]
+    needs: [functional-tests, docker-tests, binary-tests]
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
       - name: Require every validation job to pass
         env:
           FUNCTIONAL_RESULT: ${{ needs.functional-tests.result }}
+          BINARY_RESULT: ${{ needs.binary-tests.result }}
           DOCKER_RESULT: ${{ needs.docker-tests.result }}
         run: |
           test "$FUNCTIONAL_RESULT" = success
           test "$DOCKER_RESULT" = success
+          test "$BINARY_RESULT" = success

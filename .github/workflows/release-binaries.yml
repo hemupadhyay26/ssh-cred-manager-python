@@ -1,0 +1,46 @@
+name: Release binaries
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag matching package version (e.g. v1.0.1)
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: release-binaries-${{ github.event.release.tag_name || inputs.tag }}
+  cancel-in-progress: false
+jobs:
+  binaries:
+    uses: ./.github/workflows/binary-build.yml
+    with:
+      ref: ${{ github.event.release.tag_name || inputs.tag }}
+      tag: ${{ github.event.release.tag_name || inputs.tag }}
+  upload:
+    name: Attach verified binaries to release
+    needs: binaries
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: linux-binary-*
+          path: release-assets
+          merge-multiple: true
+      - name: Verify checksums and upload both architectures
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: |
+          cd release-assets
+          test "$(find . -name '*linux-amd64.tar.gz' | wc -l)" -eq 1
+          test "$(find . -name '*linux-arm64.tar.gz' | wc -l)" -eq 1
+          cat *.sha256 > SHA256SUMS-binaries
+          sha256sum -c SHA256SUMS-binaries
+          gh release view "$RELEASE_TAG" >/dev/null
+          gh release upload "$RELEASE_TAG" ./*.tar.gz ./*.sha256 SHA256SUMS-binaries --clobber

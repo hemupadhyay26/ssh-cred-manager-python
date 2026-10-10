@@ -9,8 +9,8 @@ from core.models import SSHCredential
 from ssh.connection import SSHConnection
 
 
-def main():
-    payload, result = map(Path, sys.argv[1:3])
+def main(payload_path=None, result_path=None):
+    payload, result = map(Path, (payload_path, result_path) if payload_path is not None else sys.argv[1:3])
     while not payload.with_name('ready').exists():
         time.sleep(0.02)
     data = json.loads(payload.read_text())
