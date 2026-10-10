@@ -80,6 +80,7 @@ class StorageManager:
             for cred in imported_creds.credentials:
                 if cred.name not in existing_names:
                     existing_data.credentials.append(cred)
+                    existing_names.add(cred.name)
             
             self.save(existing_data)
         else:

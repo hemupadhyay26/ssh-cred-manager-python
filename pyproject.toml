@@ -28,3 +28,15 @@ py-modules = ["main"]
 
 [tool.setuptools.packages.find]
 include = ["core*", "cli*", "ssh*", "utils*"]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.17.0",
+]
+
+[tool.ruff]
+target-version = "py313"
+
+[tool.ruff.lint]
+# Block syntax/undefined-name mistakes without imposing a large formatting rewrite.
+select = ["E9", "F63", "F7", "F82"]

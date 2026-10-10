@@ -32,6 +32,7 @@ class ThemeTests(unittest.IsolatedAsyncioTestCase):
                 commands = {command.title: command for command in next_app.get_system_commands(next_app.screen)}
                 self.assertIn("Theme", commands)
                 self.assertIn("Reset theme", commands)
+                self.assertNotIn("Screenshot", commands)
                 self.assertFalse(next_app.query("#action-themes, #action-reset_theme"))
                 commands["Reset theme"].callback()
                 await pilot.pause()

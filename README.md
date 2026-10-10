@@ -735,3 +735,20 @@ Open the command palette with **Ctrl+P** and choose **Theme** to change themes, 
 ## Stable release
 
 The first stable release is **v1.0.0**. See [CHANGELOG.md](CHANGELOG.md) for features and setup notes.
+
+
+## Pull request stability checks
+
+Pull requests targeting `main` run the functional suite on Python 3.13 and 3.14,
+validate shell scripts, build and smoke-test the installed wheel outside the
+source checkout, and build/test Docker. Tests cover credential CRUD, encrypted
+password persistence, import/export, CLI operations, keyboard UI, keys, themes,
+development gating, rsync, and tmux overflow/copy isolation. Docker smoke checks
+use temporary Compose projects and clean only their own volumes.
+
+The **PR stability gate** succeeds only when every validation job succeeds.
+It is the required status check for merging into `main`; skipped, cancelled, or
+failed validation cannot pass the gate. Run the suite locally with
+`.venv/bin/python -m unittest discover -s tests -v`.
+
+Contributor setup, required checks, and the optional pre-commit hook are documented in [CONTRIBUTING.md](CONTRIBUTING.md).

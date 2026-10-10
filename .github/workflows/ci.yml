@@ -1,22 +1,79 @@
 name: CI
 on:
-  push:
   pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  merge_group:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
-  test:
-    runs-on: ubuntu-latest
+  functional-tests:
+    name: Functional tests (Python ${{ matrix.python }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.13', '3.14']
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
-          python-version: '3.13'
-      - name: Install terminal tools
-        run: sudo apt-get update && sudo apt-get install -y tmux rsync
-      - name: Install application
-        run: python -m pip install -e .
-      - name: Test
-        run: python -m unittest discover -s tests -v
-      - name: Check shell scripts
-        run: bash -n install.sh setup.sh docker-cli.sh
-      - name: Build container
-        run: docker compose build
+          python-version: ${{ matrix.python }}
+      - name: Install terminal tools and uv
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tmux rsync
+          python -m pip install uv==0.11.0
+      - name: Install locked dependencies
+        run: uv sync --frozen --python python
+      - name: Lint Python correctness
+        run: uv run --frozen ruff check .
+      - name: Run functional and terminal regression tests
+        run: .venv/bin/python -m unittest discover -s tests -v
+      - name: Validate shell scripts
+        run: bash -n install.sh setup.sh docker-cli.sh scripts/check.sh .githooks/pre-commit
+      - name: Verify wheel works outside source checkout
+        run: |
+          uv build --wheel
+          uv pip install --python .venv/bin/python --reinstall --no-deps dist/*.whl
+          APP_BIN="$PWD/.venv/bin"
+          cd "$RUNNER_TEMP"
+          "$APP_BIN/ssc" version
+          "$APP_BIN/ssh-cred" --help
+          "$APP_BIN/python" -c "import cli.dashboard, core.preferences, ssh.rsync; from importlib.metadata import version; from core.config import VERSION; assert VERSION == version('ssh-cred-manager-python')"
+  docker-tests:
+    name: Docker functionality
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build container and verify Compose
+        run: |
+          docker compose config --quiet
+          docker compose build
+      - name: Run application regression tests inside Docker
+        run: docker compose --project-name ssc-ci run --rm -T --volume "$PWD/tests:/tests:ro" --entrypoint python ssh-cred -m unittest discover -s /tests -v
+      - name: Verify development gating and persistent Docker storage
+        run: python3 scripts/docker_smoke.py
+      - name: Clean CI volumes
+        if: always()
+        run: docker compose --project-name ssc-ci down --volumes
+  stability-gate:
+    name: PR stability gate
+    if: always()
+    needs: [functional-tests, docker-tests]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Require every validation job to pass
+        env:
+          FUNCTIONAL_RESULT: ${{ needs.functional-tests.result }}
+          DOCKER_RESULT: ${{ needs.docker-tests.result }}
+        run: |
+          test "$FUNCTIONAL_RESULT" = success
+          test "$DOCKER_RESULT" = success
