@@ -1,0 +1,16 @@
+# Exclude everything except the application and dependency metadata.
+**
+!Dockerfile
+!.dockerignore
+!pyproject.toml
+!uv.lock
+!README.md
+!main.py
+!core/
+!core/*.py
+!cli/
+!cli/*.py
+!ssh/
+!ssh/*.py
+!utils/
+!utils/*.py

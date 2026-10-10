@@ -23,7 +23,7 @@ app = typer.Typer(
 console = Console()
 manager = CredentialManager()
 ssh_connection = SSHConnection()
-connection_panel = ConnectionPanel()
+connection_panel = ConnectionPanel(console)
 
 
 @app.command()
@@ -576,7 +576,7 @@ def show(
 @app.command()
 def connect(
     name: Optional[str] = typer.Argument(None, help="Name of the SSH connection to use"),
-    no_panel: bool = typer.Option(False, "--no-panel", help="Hide connection info panel"),
+    no_panel: bool = typer.Option(False, "--no-panel", help="Disable the persistent SSH connection status bar"),
 ):
     """🚀 Main hub - search, manage, and connect to servers."""
     try:
@@ -999,35 +999,25 @@ def connect(
             console.print("\n[yellow]Password authentication:[/yellow] SSH will prompt for password in the session.")
             console.print("[dim]Type your password when SSH asks for it.[/dim]")
         
-        # Show connection info
-        connection_panel.print_connection_info(
-            name=name,
-            connection_string=connection_string,
-            key_name=key_display_name,
-            auth_method=cred.auth_method
-        )
-        
-        # Show sticky panel (enabled by default, use --no-panel to hide)
-        show_panel = not no_panel  # Inverted logic
-        if show_panel:
-            connection_panel.show(
+        # Print once before SSH owns the terminal; never overlay remote output.
+        if not no_panel:
+            connection_panel.print_connection_info(
                 name=name,
-                host=cred.host,
-                user=cred.user,
+                connection_string=connection_string,
+                key_name=key_display_name,
+                auth_method=cred.auth_method,
                 port=cred.port,
-                auth=cred.auth_method,
-                key=key_display_name
             )
-        
+
         console.print("[dim]Establishing SSH connection...[/dim]\n")
-        
-        # Execute SSH connection
-        exit_code = ssh_connection.connect(cred, key_path, password)
-        
-        # Hide panel if it was shown
-        if show_panel:
-            connection_panel.hide()
-        
+
+        # The connection indicator gets its own area outside the SSH pane.
+        if no_panel:
+            exit_code = ssh_connection.connect(cred, key_path, password)
+        else:
+            from cli.session_status import connect_with_status
+            exit_code = connect_with_status(cred, key_path)
+
         # Update last used timestamp
         manager.update_last_used(name)
         
@@ -1427,6 +1417,109 @@ def get_default_key():
     except Exception as e:
         console.print(f"[red]✗[/red] Error: {e}")
         raise typer.Exit(1)
+
+
+@app.command()
+def keys():
+    """List available private SSH keys in managed storage and ~/.ssh."""
+    from core.keys import list_keys
+    table = Table("Key", "Location", "Path")
+    for key in list_keys():
+        from rich.text import Text
+        table.add_row(Text(key.name), Text(key.location), Text(str(key.path)))
+    console.print(table)
+
+
+@app.command()
+def demo_seed():
+    """Add five fake servers for dashboard and overflow testing; skip existing names."""
+    from cli.demo_data import seed_demo
+    try:
+        count = seed_demo(manager)
+    except RuntimeError as error:
+        console.print(str(error), style="yellow")
+        raise typer.Exit(1)
+    console.print(f"[green]Added {count} demo server(s). Existing entries were kept.[/green]")
+
+
+@app.command()
+def rsync(
+    name: str = typer.Argument(..., help="Saved server name"),
+    source: str = typer.Argument(..., help="Remote path for pull; local path for push"),
+    destination: str = typer.Argument(..., help="Local path for pull; remote path for push"),
+    direction: str = typer.Option("pull", "--direction", "-d", help="pull or push"),
+    progress: bool = typer.Option(True, "--progress/--no-progress"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Preview without copying"),
+    compress: bool = typer.Option(False, "--compress", "-z"),
+    checksum: bool = typer.Option(False, "--checksum", help="Compare contents instead of size/mtime"),
+    update: bool = typer.Option(False, "--update", help="Skip files newer at the destination"),
+    exclude: Optional[List[str]] = typer.Option(None, "--exclude", help="Exclude pattern; repeatable"),
+    bandwidth: int = typer.Option(0, "--bwlimit", min=0, help="KiB/s; 0 is unlimited"),
+):
+    """Copy files incrementally using a saved SSH server; never delete destination files."""
+    from ssh.rsync import run_rsync
+    try:
+        credential = manager.get_credential(name)
+        if not credential:
+            raise ValueError(f"No saved server named '{name}'.")
+        key_path = None
+        if credential.auth_method == AUTH_METHOD_KEY:
+            default_key = manager.get_default_key()
+            key_path = ssh_connection.get_key_path(credential, default_key)
+            if (credential.key_name or default_key) and key_path is None:
+                raise ValueError("Configured SSH key was not found. Check the key path or container mounts.")
+        code = run_rsync(credential, source, destination, direction=direction,
+                         key_path=key_path, progress=progress, dry_run=dry_run,
+                         compress=compress, checksum=checksum, update=update,
+                         excludes=exclude or (), bandwidth=bandwidth)
+        if code:
+            console.print(f"Rsync exited with code {code}.", style="yellow")
+            raise typer.Exit(code)
+        if not dry_run:
+            manager.update_last_used(name)
+        console.print("Preview complete." if dry_run else "Transfer complete.", style="green")
+    except typer.Exit:
+        raise
+    except Exception as error:
+        console.print(str(error), style="red", markup=False)
+        raise typer.Exit(1)
+
+
+@app.command()
+def tui():
+    """Open the full-screen keyboard dashboard."""
+    from cli.dashboard import SSHDashboard
+
+    def export_from_dashboard():
+        path = Prompt.ask("Export file", default="ssh-creds-export.json")
+        export(output_file=path)
+        input("Press Enter to return to the dashboard...")
+
+    def import_from_dashboard():
+        path = Prompt.ask("Import file")
+        if path:
+            import_creds(input_file=path, merge=True, force=False)
+        input("Press Enter to return to the dashboard...")
+
+    def key_from_dashboard():
+        key = Prompt.ask("Default SSH key name", default=manager.get_default_key() or "")
+        if key:
+            set_default_key(key_name=key)
+        input("Press Enter to return to the dashboard...")
+
+    def rsync_from_dashboard(name, options):
+        try:
+            rsync(name=name, **options)
+        except typer.Exit:
+            pass  # Error and subprocess status have already been printed.
+        input("Press Enter to return to the dashboard...")
+
+    SSHDashboard(
+        manager,
+        connect=lambda name: connect(name=name, no_panel=False),
+        transfer=rsync_from_dashboard,
+        tools={"export": export_from_dashboard, "import": import_from_dashboard, "key": key_from_dashboard},
+    ).run()
 
 
 if __name__ == "__main__":

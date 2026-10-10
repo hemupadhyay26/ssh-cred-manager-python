@@ -1,6 +1,6 @@
 [project]
 name = "ssh-cred-manager-python"
-version = "0.1.0"
+version = "1.0.0"
 description = "A CLI tool to manage SSH credentials easily without manual alias creation, with seamless machine migration support"
 readme = "README.md"
 requires-python = ">=3.13"
@@ -12,6 +12,8 @@ dependencies = [
     "rich>=14.2.0",
     "typer>=0.20.0",
     "questionary>=2.0.1",
+    "textual>=8.2.8",
+    "python-dotenv>=1.0",
 ]
 
 [project.scripts]
@@ -22,4 +24,7 @@ ssc = "main:app"
 package = true
 
 [tool.setuptools]
-py-modules = ["main", "core", "cli", "ssh", "utils"]
+py-modules = ["main"]
+
+[tool.setuptools.packages.find]
+include = ["core*", "cli*", "ssh*", "utils*"]

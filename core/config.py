@@ -4,7 +4,7 @@ from pathlib import Path
 
 # Application settings
 APP_NAME = "ssh-cred-manager"
-VERSION = "0.1.0"
+VERSION = "1.0.0"
 
 # File paths
 CONFIG_DIR = Path.home() / ".ssh-cred-manager"

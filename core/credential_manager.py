@@ -3,6 +3,7 @@
 from typing import Optional, List
 from pathlib import Path
 
+from core.environment import is_development, is_demo_credential
 from core.models import SSHCredential, CredentialsData
 from utils.storage import StorageManager
 from utils.crypto_utils import EncryptionManager
@@ -33,7 +34,7 @@ class CredentialManager:
         data = self.storage.load()
         
         # Check if name already exists
-        if self.get_credential(name):
+        if any(credential.name == name for credential in data.credentials):
             return False
         
         # Encrypt password if provided
@@ -66,13 +67,15 @@ class CredentialManager:
         data = self.storage.load()
         for cred in data.credentials:
             if cred.name == name:
+                if is_demo_credential(cred) and not is_development():
+                    return None
                 return cred
         return None
     
     def list_credentials(self) -> List[SSHCredential]:
         """Get all credentials."""
         data = self.storage.load()
-        return data.credentials
+        return [c for c in data.credentials if is_development() or not is_demo_credential(c)]
     
     def update_credential(
         self,

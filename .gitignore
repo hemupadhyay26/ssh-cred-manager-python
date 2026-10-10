@@ -63,6 +63,7 @@ ssh-creds-export.json
 .env.local
 .env.production
 *.env
+!.env.example
 
 # Configuration files that might contain secrets
 config.local.json
@@ -77,8 +78,7 @@ tmp-*.json
 test-credentials.json
 test-creds.json
 
-# UV
-uv.lock
+# UV lockfile is committed for reproducible Docker builds
 
 # Testing
 .pytest_cache/

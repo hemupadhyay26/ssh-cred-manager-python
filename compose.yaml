@@ -1,0 +1,17 @@
+services:
+  ssh-cred:
+    build: .
+    image: ssh-cred-manager:local
+    stdin_open: true
+    tty: true
+    init: true
+    environment:
+      ENV: ${ENV:-production}
+      TERM: ${TERM:-xterm-256color}
+    volumes:
+      - credentials:/home/app/.ssh-cred-manager
+      - ssh:/home/app/.ssh
+
+volumes:
+  credentials:
+  ssh:
