@@ -762,7 +762,7 @@ Open the command palette with **Ctrl+P** and choose **Theme** to change themes, 
 
 ## Stable release
 
-The first stable release is **v1.0.0**. See [CHANGELOG.md](CHANGELOG.md) for features and setup notes.
+The latest release is **v1.1.0**; **v1.0.0** was the first stable release. See [CHANGELOG.md](CHANGELOG.md) for features and setup notes.
 
 
 ## Pull request stability checks

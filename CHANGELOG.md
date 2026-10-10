@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.1.0 — 2026-10-11
+
+- Standalone Linux executables for AMD64 and ARM64, with bundled Python and application dependencies.
+- Automated native binary builds, regression tests, and SHA-256 checksums attached to published releases.
+- Frozen tmux workers reuse the executable; system SSH, tmux, and rsync use their original library environment.
+- Optional `SSC_CONFIG_DIR` isolates credentials, keys, and preferences; development `.env` is read beside the executable.
+- Required PR checks cover Python 3.13/3.14, Docker, both binary architectures, and terminal regressions.
+- README documents the TUI, Docker, and standalone setup options.
+
+Linux binaries require glibc 2.35+ and system OpenSSH/tmux/rsync. Python and Docker are not needed for the standalone executable.
+
 ## v1.0.0 — 2026-10-10
 
 First stable release of SSH Credential Manager.
