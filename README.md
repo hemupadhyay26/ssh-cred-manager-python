@@ -1,11 +1,39 @@
 # 🔐 SSH Credential Manager
 
-A modern CLI tool to manage SSH credentials easily without manual alias creation, with seamless machine migration support.
+Manage SSH servers from a command-line interface or a keyboard-driven terminal
+dashboard (TUI). Browse SSH keys, edit server entries, connect with a persistent
+status bar, transfer files with rsync, and keep your selected theme between sessions.
+
+## Ways to run
+
+| Option | Start the dashboard | Requirements |
+| --- | --- | --- |
+| Docker | `docker compose run --rm ssh-cred tui` | Docker Engine and Compose; runtime tools are included in the image |
+| Standalone Linux binary | `./ssc tui` | Linux AMD64 or ARM64, glibc 2.35+, system OpenSSH/tmux/rsync |
+| Local Python | `ssc tui` after optional setup | `./install.sh --local`, then `./setup.sh --local` |
+
+The same CLI commands work across these options: `list`, `add`, `connect`,
+`keys`, and `tui`. Docker passes commands directly to the application.
+Standalone binaries bundle Python and the application dependencies. GitHub
+Actions builds both architectures automatically and attaches verified archives
+and checksums when a release containing the workflow is published. See
+[standalone binary instructions](docs/BINARY.md) and [GitHub releases](https://github.com/hemupadhyay26/ssh-cred-manager-python/releases).
+
+## Terminal dashboard
+
+Run `ssc tui`, `./ssc tui`, or `docker compose run --rm ssh-cred tui` for your
+chosen setup. Use arrow keys to navigate servers and Enter to connect. The
+dashboard supports adding, editing, deleting, searching, key selection, and
+file transfers. Press **K** to browse keys and **Ctrl+P** for theme selection
+and reset; the selected theme is saved for the next session.
 
 ---
 
 ## ✨ Features
 
+- 🖥️ **Terminal Dashboard (TUI)** - Keyboard navigation, server CRUD, key browsing, transfers, and saved themes
+- 🐳 **Docker Support** - Containerized runtime with persistent credentials and keys
+- 📦 **Standalone Linux Binaries** - Automated AMD64 and ARM64 release builds with checksums
 - 🚀 **Interactive Hub** - Main connect interface for all operations
 - 🧙 **Quick Wizard** - Add servers in seconds with `ssc wizard user@ip`
 - 🔍 **Fuzzy Search** - Find servers by name, host, user, tags, or description
