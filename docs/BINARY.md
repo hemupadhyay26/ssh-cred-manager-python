@@ -40,39 +40,10 @@ You may manually place `ssc` in a directory on PATH to use `ssc tui` directly.
 The one-file binary extracts runtime libraries into a temporary directory at
 startup, so the system temporary directory must allow executable files.
 
-## Build and test locally (Linux or WSL)
 
-Install uv and the system tools `ssh`, `tmux`, `rsync`, and `binutils`, then run
-from the repository root:
+## Automated builds
 
-```bash
-./scripts/build_binary.sh
-.venv/bin/python scripts/test_binary.py dist/binary/ssc
-./dist/binary/ssc --version
-```
-
-The automated smoke test creates temporary credentials and removes them when
-it finishes. For a separate interactive demo:
-
-```bash
-export SSC_CONFIG_DIR="$(mktemp -d -t ssc-binary-demo.XXXXXX)"
-export ENV=development
-./dist/binary/ssc demo-seed
-./dist/binary/ssc tui
-# Or: ./dist/binary/ssc connect demo-web-dev
-# Inside the demo shell: scroll 1000; then exit
-```
-
-After closing the dashboard and connections, clean up the demo and build output:
-
-```bash
-case "$SSC_CONFIG_DIR" in
-  /tmp/ssc-binary-demo.*) rm -rf -- "$SSC_CONFIG_DIR" ;;
-esac
-unset SSC_CONFIG_DIR ENV
-rm -rf -- build/pyinstaller dist/binary dist/release
-```
-
-Keep `.venv` for normal development; remove it separately if you also want to
-remove installed development dependencies. Build on each target architecture;
-the local script does not cross-compile.
+GitHub Actions builds and tests Linux AMD64 and ARM64 binaries on pull requests.
+Publishing a release runs the same builds from the release tag and attaches
+verified archives and checksums. The tag must match the package version.
+There is no separate local build setup.
