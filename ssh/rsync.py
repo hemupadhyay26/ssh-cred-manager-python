@@ -1,4 +1,5 @@
 """Incremental, non-deleting rsync transfers over saved SSH connections."""
+from core.runtime import external_environment
 import re
 import shlex
 import shutil
@@ -61,6 +62,6 @@ def run_rsync(credential, source, destination, **options):
     command = build_rsync_command(credential, source, destination, **options)
     try:
         # Inherit the terminal for live progress and native SSH password prompts.
-        return subprocess.run(command).returncode
+        return subprocess.run(command, env=external_environment()).returncode
     except KeyboardInterrupt:
         return 130

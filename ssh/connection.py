@@ -1,5 +1,6 @@
 """SSH connection management."""
 
+from core.runtime import external_environment
 import subprocess
 import os
 from core.environment import is_development, is_demo_credential
@@ -172,7 +173,7 @@ class SSHConnection:
         
         # Execute SSH command
         try:
-            result = subprocess.run(cmd)
+            result = subprocess.run(cmd, env=external_environment())
             return result.returncode
         except KeyboardInterrupt:
             # User pressed Ctrl+C

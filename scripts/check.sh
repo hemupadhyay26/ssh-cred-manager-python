@@ -6,7 +6,7 @@ cd "$PROJECT_DIR"
 command -v uv >/dev/null 2>&1 || { echo "Install uv to run contributor checks." >&2; exit 1; }
 uv sync --frozen
 uv run --frozen ruff check .
-bash -n install.sh setup.sh docker-cli.sh scripts/check.sh .githooks/pre-commit
+bash -n install.sh setup.sh docker-cli.sh scripts/check.sh scripts/build_binary.sh .githooks/pre-commit
 uv run --frozen python -m unittest discover -s tests -v
 git diff --check
 git diff --cached --check

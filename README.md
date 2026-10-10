@@ -752,3 +752,16 @@ failed validation cannot pass the gate. Run the suite locally with
 `.venv/bin/python -m unittest discover -s tests -v`.
 
 Contributor setup, required checks, and the optional pre-commit hook are documented in [CONTRIBUTING.md](CONTRIBUTING.md).
+
+
+## Standalone Linux binaries
+
+Release automation builds and tests a single `ssc` executable for Linux AMD64
+and ARM64, then attaches archives and SHA-256 checksums to the published GitHub
+release. Python is bundled; system `ssh`, `tmux`, and `rsync` remain required.
+The binaries require glibc 2.35 or newer (Ubuntu 22.04+, Debian 12+).
+
+See [binary setup and local testing](docs/BINARY.md) for download, build, isolated
+demo, and cleanup commands. PR checks test both native architectures before the
+required stability gate passes. The release tag must match the package version
+and include the binary workflow; existing older tags are not rebuilt in place.

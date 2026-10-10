@@ -1,13 +1,14 @@
 """Configuration and constants for SSH Credential Manager."""
 
 from pathlib import Path
+import os
 
 # Application settings
 APP_NAME = "ssh-cred-manager"
 VERSION = "1.0.0"
 
 # File paths
-CONFIG_DIR = Path.home() / ".ssh-cred-manager"
+CONFIG_DIR = Path(os.environ.get("SSC_CONFIG_DIR", str(Path.home() / ".ssh-cred-manager"))).expanduser()
 KEYS_DIR = CONFIG_DIR / "keys"
 CREDENTIALS_FILE = CONFIG_DIR / "credentials.json"
 MASTER_KEY_FILE = CONFIG_DIR / "master.key"

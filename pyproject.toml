@@ -31,6 +31,7 @@ include = ["core*", "cli*", "ssh*", "utils*"]
 
 [dependency-groups]
 dev = [
+    "pyinstaller>=6.22.3",
     "ruff>=0.17.0",
 ]
 
