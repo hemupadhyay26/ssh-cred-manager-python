@@ -66,17 +66,43 @@ class StatusTests(unittest.TestCase):
                 # Resizing retains the independent status area.
                 fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack('HHHH', 24, 60, 0, 0))
                 self.assertEqual(subprocess.check_output(tmux + ['show-option', '-t', 'ssh', '-v', 'status-position'], text=True).strip(), 'top')
-                os.write(fd, b'scroll 200\n')
+                os.write(fd, b'scroll 3000\n')
                 deadline = time.monotonic() + 5
                 scrollback = ''
                 while time.monotonic() < deadline:
                     if select.select([fd], [], [], 0.05)[0]:
                         os.read(fd, 65536)
                     scrollback = subprocess.check_output(tmux + ['capture-pane', '-p', '-S', '-', '-t', 'ssh'], text=True)
-                    if '00200 | demo-pty' in scrollback:
+                    if '03000 | demo-pty' in scrollback:
                         break
-                self.assertIn('00200 | demo-pty', scrollback)
+                self.assertIn('03000 | demo-pty', scrollback)
                 self.assertNotIn('SSH |', scrollback)
+                self.assertIn('00001 | demo-pty', scrollback)
+                self.assertEqual(subprocess.check_output(tmux + ['show-option', '-t', 'ssh', '-v', 'mouse'], text=True).strip(), 'on')
+                self.assertEqual(subprocess.check_output(tmux + ['show-option', '-g', '-v', 'history-limit'], text=True).strip(), '100000')
+
+                def wait_mode(expected):
+                    deadline = time.monotonic() + 3
+                    while time.monotonic() < deadline:
+                        if select.select([fd], [], [], 0.05)[0]:
+                            os.read(fd, 65536)
+                        state = subprocess.check_output(tmux + ['display-message', '-p', '-t', 'ssh', '#{pane_in_mode}'], text=True).strip()
+                        if state == expected:
+                            return
+                    self.fail('scrollback mode did not become ' + expected)
+
+                # Real terminal wheel events must enter scrollback without a prefix.
+                os.write(fd, b'\x1b[<64;15;10M')
+                wait_mode('1')
+                visible = subprocess.check_output(tmux + ['capture-pane', '-p', '-t', 'ssh'], text=True)
+                self.assertNotIn('SSH |', visible)
+                os.write(fd, b'\x1b')
+                wait_mode('0')
+                # Page Up is a keyboard alternative; Escape returns input to SSH.
+                os.write(fd, b'\x1b[5~')
+                wait_mode('1')
+                os.write(fd, b'\x1b')
+                wait_mode('0')
                 os.write(fd, b'whoami\nexit\n')
                 deadline = time.monotonic() + 10
                 while time.monotonic() < deadline:
