@@ -5,7 +5,7 @@ import os
 
 # Application settings
 APP_NAME = "ssh-cred-manager"
-VERSION = "1.1.0"
+VERSION = "1.1.1"
 
 # File paths
 CONFIG_DIR = Path(os.environ.get("SSC_CONFIG_DIR", str(Path.home() / ".ssh-cred-manager"))).expanduser()
