@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.1.1 — 2026-10-19
+
+- Fix scrollback while the persistent SSH status panel is visible: use the mouse wheel or Page Up, then Escape to resume live input.
+- Retain up to 100,000 lines of shell history in the isolated tmux session.
+- Copy mouse-drag selections immediately on release, with a brief "Copied selection" confirmation in the status area.
+- Keep clipboard confirmation and the connection panel out of shell output.
+- Extend real-terminal regression tests to cover overflow, scrolling, selection, clipboard writes, and feedback.
+
+Automatic copying uses OSC 52 and requires a terminal that supports and permits clipboard writes. Hold Shift while dragging for native terminal selection. Linux AMD64 and ARM64 binary archives and SHA-256 checksums are attached by the release workflow after validation.
+
 ## v1.1.0 — 2026-10-11
 
 - Standalone Linux executables for AMD64 and ARM64, with bundled Python and application dependencies.
