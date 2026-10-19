@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -41,10 +42,17 @@ def connect_with_status(credential, key_path=None):
         payload.chmod(0o600)
         # Set history before creating the pane: tmux applies this limit at creation.
         config = root / 'tmux.conf'
+        clipboard_command = (
+            f'tmux -S {shlex.quote(str(root / "socket"))} load-buffer -w - && '
+            f'tmux -S {shlex.quote(str(root / "socket"))} display-message -d 1500 "Copied selection"'
+        )
         config.write_text(
             'set-option -g history-limit 100000\n'
             'set-option -g mouse on\n'
-            'set-option -s set-clipboard on\n'
+            'set-option -s set-clipboard external\n'
+            'set-option -as terminal-features ",*:clipboard"\n'
+            f'bind-key -T copy-mode MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel {shlex.quote(clipboard_command)}\n'
+            f'bind-key -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel {shlex.quote(clipboard_command)}\n'
             'bind-key -n PageUp copy-mode -u\n'
             'bind-key -T copy-mode Escape send-keys -X cancel\n'
             'bind-key -T copy-mode-vi Escape send-keys -X cancel\n'
@@ -62,7 +70,7 @@ def connect_with_status(credential, key_path=None):
                 'status-style': 'bg=colour235,fg=colour255',
                 'status-interval': '0', 'mouse': 'on',
                 'status-format[0]': '#[bold,fg=colour82] SSH | ' + status_text(credential.name) + ' #[default]| ' + status_text(f'{credential.user}@{credential.host}:{credential.port}'),
-                'status-format[1]': '#[fg=colour117] Auth: ' + status_text(credential.auth_method) + ' | Key: ' + status_text(key_path.name if key_path else credential.key_name or '(default)') + ' | Scroll: wheel/PgUp | Esc: resume | Shift+drag: terminal copy',
+                'status-format[1]': '#[fg=colour117] Auth: ' + status_text(credential.auth_method) + ' | Key: ' + status_text(key_path.name if key_path else credential.key_name or '(default)') + ' | Scroll: wheel/PgUp | Esc: resume | Drag: auto-copy',
             }
             for option, value in options.items():
                 subprocess.run(command + ['set-option', '-t', 'ssh', option, value], env=environment, check=True, capture_output=True)

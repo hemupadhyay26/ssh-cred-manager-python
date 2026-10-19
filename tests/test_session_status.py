@@ -1,5 +1,7 @@
 """Real PTY regression: persistent status stays outside selected shell content."""
 import os
+import base64
+import re
 from pathlib import Path
 import select
 import shutil
@@ -102,6 +104,38 @@ class StatusTests(unittest.TestCase):
                 os.write(fd, b'\x1b[5~')
                 wait_mode('1')
                 os.write(fd, b'\x1b')
+                wait_mode('0')
+                # Mouse release copies selected pane text and emits an OSC 52
+                # clipboard write; this works without any Ctrl+C keypress.
+                os.write(fd, b'echo clipboard-marker\n')
+                deadline = time.monotonic() + 3
+                lines = []
+                while time.monotonic() < deadline:
+                    if select.select([fd], [], [], 0.05)[0]:
+                        os.read(fd, 65536)
+                    lines = subprocess.check_output(tmux + ['capture-pane', '-p', '-t', 'ssh'], text=True).splitlines()
+                    if 'clipboard-marker' in lines:
+                        break
+                self.assertIn('clipboard-marker', lines)
+                top = int(subprocess.check_output(tmux + ['display-message', '-p', '-t', 'ssh', '#{pane_top}'], text=True))
+                status_lines = int(subprocess.check_output(tmux + ['show-option', '-t', 'ssh', '-v', 'status'], text=True))
+                row = top + status_lines + lines.index('clipboard-marker') + 1
+                os.write(fd, f'\x1b[<0;1;{row}M'.encode())
+                os.write(fd, f'\x1b[<32;17;{row}M'.encode())
+                os.write(fd, f'\x1b[<0;17;{row}m'.encode())
+                received = b''
+                deadline = time.monotonic() + 3
+                clipboard_values = []
+                while time.monotonic() < deadline:
+                    if select.select([fd], [], [], 0.05)[0]:
+                        received += os.read(fd, 65536)
+                    clipboard_values = [base64.b64decode(value) for value in re.findall(rb'\x1b\]52;[^;]*;([A-Za-z0-9+/=]+)(?:\x07|\x1b\\)', received)]
+                    if b'clipboard-marker' in clipboard_values and b'Copied selection' in received:
+                        break
+                self.assertIn(b'clipboard-marker', clipboard_values)
+                self.assertIn(b'Copied selection', received)
+                self.assertEqual(subprocess.check_output(tmux + ['show-buffer']), b'clipboard-marker')
+                self.assertNotIn('Copied selection', subprocess.check_output(tmux + ['capture-pane', '-p', '-t', 'ssh'], text=True))
                 wait_mode('0')
                 os.write(fd, b'whoami\nexit\n')
                 deadline = time.monotonic() + 10
